@@ -11,7 +11,7 @@ class User(db.Model):
 
 class Job(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    #creator = db.Column(db.Integer, db.ForeignKey('user.id'))
+    creator = db.Column(db.Integer)#, db.ForeignKey('user.id'))
     name = db.Column(db.String(50), nullable=False)
     description = db.Column(db.String(200), nullable=False)
     address = db.Column(db.String(40), nullable=False)
@@ -19,8 +19,12 @@ class Job(db.Model):
     time = db.Column(db.String(30), nullable=False)
     phone = db.Column(db.String(30), nullable=True)
     profit = db.Column(db.String(20), nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    taken = db.Column(db.Boolean, nullable=False)
 
-    def __init__(self, name, descripiton, addres, date, time, phone, profit):
+    def __init__(self, creator, name, descripiton, addres, date, time, phone, profit, latitude, longitude):
+        self.creator = creator
         self.name = name
         self.description = descripiton
         self.address = addres
@@ -28,5 +32,9 @@ class Job(db.Model):
         self.time = time
         self.phone = phone
         self.profit = profit
+        self.latitude = latitude
+        self.longitude = longitude
+        self.taken = False
+
 
 

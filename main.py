@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
+import flask_restful
 import types
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask_sqlalchemy import SQLAlchemy
@@ -30,21 +31,39 @@ class PutJob(Resource):
         # print(todos)
         # return {todo_id: todos[todo_id]}
         try:
-            job = Job(request.form['name'],
+            job = Job(User.query.filter_by(email=request.form['user']).first().id,
+                      request.form['name'],
                       request.form['description'],
                       request.form['address'],
                       request.form['date'],
                       request.form['time'],
                       request.form['phone'],
-                      request.form['profit'])
+                      request.form['profit'],
+                      request.form['latitude'],
+                      request.form['longitude'])
             db.session.add(job)
             db.session.commit()
+
             # dupa = tuples_to_json(Job.query.all()).data
             # print(dupa)
 
         except pymssql.IntegrityError as e:
             print(e)
             return {'response': 'Bad values'}
+
+@api.route('/getmyjobs')
+class GetMyJobs(Resource):
+    def post(self):
+        return tuples_to_json(Job.query.filter_by(taken=User.query.filter_by(email=request.form['user']).first().id).all)
+
+
+@api.route('/takejob')
+class TakeJob(Resource):
+    def post(self):
+        job = Job.query.filter_by(id=request.form['id']).first()
+        job.taken = User.query.filter_by(email=request.form['user']).first().id
+        db.session.commit()
+
 
 @api.route('/login')
 class Login(Resource):
@@ -55,7 +74,10 @@ class Login(Resource):
             user = User.query.filter_by(email=params['email'], hash=params['hash']).first()
             if user is not None:
                 return {'response': 'true'}
-            return {'response': 'false'}
+            if user is None:
+                return {'response': 'false'}
+            flask_restful.abort(400)
+            #return {'response': 'false'}
 
         except Exception as e:
             print(e)
@@ -76,6 +98,22 @@ class Register(Resource):
             print(e)
             return {'response': 'Username already exists'}
 
+
+@api.route('/getjobs')
+class GetJobs(Resource):
+    def get(self):
+        try:
+            jobs = Job.query.filter_by(taken=0).all()
+            return tuples_to_json(jobs)
+        except Exception as e:
+            print(e)
+
+# @api.route('getmyjobs')
+# class GetMyJobs(Resource):
+#     def post(self):
+#         try:
+#             jobs = Job.query.filter_by()
+
 def tuples_to_json(tuples):
     if isinstance(tuples, list):
         tab = []
@@ -94,4 +132,4 @@ def row2dict(row):  # takes a SQLAlchemy tuple and converts it to dictionary
     return d
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0')
