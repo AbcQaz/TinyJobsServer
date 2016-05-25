@@ -62,7 +62,7 @@ class TakeJob(Resource):
     def post(self):
         job = Job.query.filter_by(id=request.form['id']).first()
         job.taken = User.query.filter_by(email=request.form['user']).first().id
-        db.session.commit()
+        db.commit();
 
 
 @api.route('/login')
@@ -73,7 +73,10 @@ class Login(Resource):
         try:
             user = User.query.filter_by(email=params['email'], hash=params['hash']).first()
             if user is not None:
-                return {'response': 'true'}
+                user.longitude = request.form['longitude']
+                user.latitude = request.form['latitude']
+                db.session.commit()
+                return {'response': 'true', 'userID': user.id}
             if user is None:
                 return {'response': 'false'}
             flask_restful.abort(400)
@@ -85,13 +88,11 @@ class Login(Resource):
 @api.route('/register')
 class Register(Resource):
     def post(self):
-        params = {'email': request.form['email'],
-                'hash': request.form['hash']}
         try:
-            user = User(params['email'], params['hash'])
+            user = User(request.form['email'], request.form['hash'], request.form['longitude'], request.form['latitude'])
             db.session.add(user)
             db.session.commit()
-            print 'User registered: ', str(params)
+            print 'User registered: ', user.email
             return {'response': 'User registered'}
 
         except pymssql.IntegrityError as e:
@@ -101,9 +102,28 @@ class Register(Resource):
 
 @api.route('/getjobs')
 class GetJobs(Resource):
-    def get(self):
+    def post(self):
         try:
             jobs = Job.query.filter_by(taken=0).all()
+            return tuples_to_json(jobs)
+        except Exception as e:
+            print(e)
+
+@api.route('/taken')
+class Taken(Resource):
+    def post(self):
+        try:
+            jobs = Job.query.filter_by(taken=request.form['id']).all()
+            return tuples_to_json(jobs)
+        except Exception as e:
+            print(e)
+
+@api.route('/ordered')
+class Ordered(Resource):
+    def post(self):
+        try:
+            id = request.form['id']
+            jobs = Job.query.filter_by(creator=id).all()
             return tuples_to_json(jobs)
         except Exception as e:
             print(e)
